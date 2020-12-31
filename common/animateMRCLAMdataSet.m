@@ -4,14 +4,14 @@
 % Description: This scripts creates an animation using ground truth data.
 % Run this script after loadMRCLAMdataSet.m and sampleMRCLAMdataSet.m
 
-function animateMRCLAMdataSet(Robots, Landmark_Groundtruth, timesteps, sample_time)
+function animateMRCLAMdataSet(Robots, Landmark_Groundtruth, Barcodes, barcodes_dict, timesteps, sample_time)
 
     % Options %
     start_timestep = 1;
     end_timestep = timesteps; 
     timesteps_per_frame = 50;
     pause_time_between_frames=0.01; %[s]
-    draw_measurements = 0;
+    draw_measurements = 1;
     % Options END %
 
     n_robots = size(Robots, 1);
@@ -45,10 +45,11 @@ function animateMRCLAMdataSet(Robots, Landmark_Groundtruth, timesteps, sample_ti
     r_landmark = 0.055;
     d_landmark = 2*r_landmark;
     
-    % get initial positions for robot groundtruth
+    % get and draw initial positions for robot groundtruth
     for i = 1:n_robots  
         x=Robots{i}.G(1,2);
         y=Robots{i}.G(1,3);
+        % note z is actually theta
         z=Robots{i}.G(1,4);
         x1 = d_robot*cos(z) + x;
         y1 = d_robot*sin(z) + y;
@@ -60,7 +61,7 @@ function animateMRCLAMdataSet(Robots, Landmark_Groundtruth, timesteps, sample_ti
         n_measurements(i) = length(Robots{i}.M(:,1));
     end
     
-    % get initial positions for robot pose estimates
+    % get and draw initial positions for robot pose estimates
     for i = 1:n_robots
         x=Robots{i}.Est(1,2);
         y=Robots{i}.Est(1,3);
@@ -74,7 +75,7 @@ function animateMRCLAMdataSet(Robots, Landmark_Groundtruth, timesteps, sample_ti
         line([x x1],[y y1],'Color','k');    
     end
     
-    % get positions for landmarks
+    % get and draw positions for landmarks
     for i = 1:n_landmarks
         x=Landmark_Groundtruth(i, 2);
         y=Landmark_Groundtruth(i, 3);
@@ -82,6 +83,8 @@ function animateMRCLAMdataSet(Robots, Landmark_Groundtruth, timesteps, sample_ti
         p2 = y - r_landmark;
         plotHandles_landmark_gt(i) = rectangle('Position',[p1,p2,d_landmark,d_landmark],'Curvature',[1,1],...
                   'FaceColor',colour(i+10,:),'LineWidth',1);
+        landmark_id = Landmark_Groundtruth(i, 1);
+        text(x+0.1, y, ""+barcodes_dict(landmark_id));
     end
 
     axis square;
@@ -103,6 +106,7 @@ function animateMRCLAMdataSet(Robots, Landmark_Groundtruth, timesteps, sample_ti
     clear tempIndex
     
     % animate robots groundtruth and pose estimates
+    set_time_text_handle = 0;
     for k=start_timestep:end_timestep
         t = k*sample_time;
 
@@ -138,21 +142,34 @@ function animateMRCLAMdataSet(Robots, Landmark_Groundtruth, timesteps, sample_ti
 
             % plot meaurements of robot i 
             if(draw_measurements)
+%                 if (t>69.74)
+%                     t
+%                     measurement_time_index(i)
+%                 end
+
+                % note that because of the way time steps are implemented here (by default, 0.02 second steps), the below loop 
+                % can end up drawing multiple measurement lines for a single time step, when it so happens that the timestamps 
+                % on the measurements were closer spaced than 0.02 seconds
                 while(n_measurements(i) >= measurement_time_index(i) && Robots{i}.M(measurement_time_index(i),1) <= t)
                     measure_id = Robots{i}.M(measurement_time_index(i),2);
                     measure_r = Robots{i}.M(measurement_time_index(i),3);
                     measure_b = Robots{i}.M(measurement_time_index(i),4);
                     landmark_index = find(Barcodes(:,2)==measure_id);
-                    if(~isempty(landmark_index))
-                        x1 = x(i) + measure_r*cos(measure_b + z(i));
-                        y1 = y(i) + measure_r*sin(measure_b + z(i));
-                        line([x(i) x1],[y(i) y1],'Color',colour(i,:),'LineWidth',1);
-                    else
-                        robot_index = find(Barcodes(1:5,2)==measure_id);
-                        if(~isempty(robot_index))
-                            x1 = x(i) + measure_r*cos(measure_b + z(i));
-                            y1 = y(i) + measure_r*sin(measure_b + z(i));
-                            line([x(i) x1],[y(i) y1],'Color',colour(i,:),'LineWidth',1);
+                    % this is super hard coded, but corresponds to the same in getObservations. Filter
+                    % for only the valid landmark ids, per landmark ground-truth file
+                    if (landmark_index > 5 && landmark_index < 21)
+                        if(~isempty(landmark_index))
+                            % note z is actually theta
+                            x1 = x_g(i) + measure_r*cos(measure_b + z_g(i));
+                            y1 = y_g(i) + measure_r*sin(measure_b + z_g(i));
+                            line([x_g(i) x1],[y_g(i) y1],'Color',colour(i,:),'LineWidth',1);
+                        else
+                            robot_index = find(Barcodes(1:5,2)==measure_id);
+                            if(~isempty(robot_index))
+                                x1 = x_g(i) + measure_r*cos(measure_b + z_g(i));
+                                y1 = y_g(i) + measure_r*sin(measure_b + z_g(i));
+                                line([x_g(i) x1],[y_g(i) y1],'Color',colour(i,:),'LineWidth',1);
+                            end
                         end
                     end
                     measurement_time_index(i) = measurement_time_index(i) + 1; 
@@ -162,13 +179,16 @@ function animateMRCLAMdataSet(Robots, Landmark_Groundtruth, timesteps, sample_ti
 
         % write time
         if(mod(k,timesteps_per_frame)==0)
-            delete(findobj('Type','text'));
+            if (set_time_text_handle)
+                delete(time_text_handle);
+            end
             texttime = strcat('k= ',num2str(k,'%5d'), '  t= ',num2str(t,'%5.2f'), '[s]');
-            text(1.5,6.5,texttime);
+            time_text_handle = text(1.5,6.5,texttime);
+            set_time_text_handle = 1;
             pause(pause_time_between_frames);
         else
             if(draw_measurements)
-                pause(0.001);
+                pause(0.003);
             end
         end
     end

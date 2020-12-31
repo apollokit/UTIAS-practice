@@ -166,4 +166,5 @@ end
 %%
 
 % display results!
-animateMRCLAMdataSet(Robots, Landmark_Groundtruth, timesteps, deltaT);
+barcodes_dict = containers.Map(Barcodes(:,1),Barcodes(:,2));
+animateMRCLAMdataSet(Robots, Landmark_Groundtruth, Barcodes, barcodes_dict, timesteps, deltaT);
