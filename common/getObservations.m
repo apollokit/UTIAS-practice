@@ -5,7 +5,7 @@ function [z, index] = getObservations(Robots, robot_num, t, index, codeDict)
         barcode = Robots{robot_num}.M(index,2);
         landmarkID = 0;
         if (codeDict.isKey(barcode))
-            landmarkID = codeDict(barcode);
+            landmarkID = codeDict(uint32(barcode));
         else
             disp('key not found');
         end
@@ -15,14 +15,16 @@ function [z, index] = getObservations(Robots, robot_num, t, index, codeDict)
             if uint8(z(3)) == 0
                 z = [range;
                      bearing;
-                     landmarkID - 5];
+                     double(landmarkID - 5)];
             else
                 newZ = [range;
                         bearing;
-                        landmarkID - 5];
+                        double(landmarkID - 5)];
                 z = [z newZ];
             end
         end
         index = index + 1;
     end
+    
+
 end
