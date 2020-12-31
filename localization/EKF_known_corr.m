@@ -102,13 +102,22 @@ for i = start:size(Robots{robot_num}.G, 1)
     
     % create two matrices for expected measurement and measurement
     % covariance
-    S = zeros(size(z,2),3,3);
-    zHat = zeros(3, size(z,2));
+    % S = zeros(size(z,2),3,3);
+    % zHat = zeros(3, size(z,2));
+    S = zeros(1,3,3);
+    zHat = zeros(3, 1);
     
     % if any measurements are available
+    j_seen = [];
     if z(3,1) > 1
         for k = 1:size(z, 2) % loop over every measurement
             j = z(3,k);
+            % protect against duplicate measurements of the same landmark
+            if any(j_seen == j)
+                continue
+            end
+
+            j_seen = [j_seen j];
 
             % get coordinates of the measured landmark
             m = Landmark_Groundtruth(j, 2:3);
