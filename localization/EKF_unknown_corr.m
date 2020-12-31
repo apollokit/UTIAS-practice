@@ -40,6 +40,9 @@ end
 % updating the robot's pose estimate with each step
 % reference table 7.3 in Probabilistic Robotics
 for i = start:size(Robots{robot_num}.G, 1)
+    if (mod(i, 10000) == 0)
+        i
+    end
     theta = poseMean(3, 1);
     % update time
     t = Robots{robot_num}.G(i, 1);
@@ -147,4 +150,7 @@ for i = start:size(Robots{robot_num}.G, 1)
     %}
    
 end
+
+%%
+
 animateMRCLAMdataSet(Robots, Landmark_Groundtruth, timesteps, deltaT);
