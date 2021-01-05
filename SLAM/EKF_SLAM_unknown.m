@@ -187,4 +187,6 @@ p_loss = path_loss(Robots, robot_num, start);
 disp(p_loss);
 Robots{robot_num}.Map = stateMean;
 
-%animateMRCLAMdataSet(Robots, Landmark_Groundtruth, timesteps, deltaT);
+%%
+barcodes_dict = containers.Map(Barcodes(:,1),Barcodes(:,2));
+animateMRCLAMdataSet(Robots, Landmark_Groundtruth, Barcodes, barcodes_dict, timesteps, deltaT);

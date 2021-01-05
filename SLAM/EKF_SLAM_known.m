@@ -52,7 +52,10 @@ codeDict = containers.Map(Barcodes(:,2),Barcodes(:,1));
 % updating the robot's pose estimate with each step
 % reference table 10.1 in Probabilistic Robotics
 for i = start:size(Robots{robot_num}.G, 1)
-    
+    if (mod(i, 10000) == 0)
+        i
+    end
+
     % update time
     t = Robots{robot_num}.G(i, 1);
     
@@ -166,4 +169,7 @@ disp(land_loss);
 
 p_loss = path_loss(Robots, robot_num, start);
 disp(p_loss);
-animateMRCLAMdataSet(Robots, Landmark_Groundtruth, timesteps, deltaT);
+
+%%
+barcodes_dict = containers.Map(Barcodes(:,1),Barcodes(:,2));
+animateMRCLAMdataSet(Robots, Landmark_Groundtruth, Barcodes, barcodes_dict, timesteps, deltaT);
